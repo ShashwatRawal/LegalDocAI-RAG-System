@@ -29,7 +29,7 @@ LegalDocAI is a full-stack web application designed to demystify complex legal d
 ### Installation & Setup
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/ShashwatRawal/LegalDoc-AI-RAG-System.git]
+    git clone [https://github.com/ShashwatRawal/LegalDocAI-RAG-System.git]
     cd LegalDoc-AI-RAG-System
     ```
 
