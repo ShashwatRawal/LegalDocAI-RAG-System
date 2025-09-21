@@ -13,6 +13,29 @@ from google.cloud.aiplatform.matching_engine.matching_engine_index_endpoint impo
 import vertexai
 from vertexai.language_models import TextEmbeddingModel
 from vertexai.generative_models import GenerativeModel
+import streamlit as st
+import json
+
+# --- GCP AUTHENTICATION ---
+# This block handles authentication for both local development and Streamlit Cloud.
+try:
+    # Check if we are running on Streamlit Cloud
+    if 'gcp_service_account' in st.secrets:
+        # If so, create a credentials file from the secrets
+        creds_dict = st.secrets["gcp_service_account"]
+        creds_json = json.dumps(creds_dict)
+        
+        # Write the JSON to a temporary file
+        with open("gcp_creds.json", "w") as f:
+            f.write(creds_json)
+        
+        # Set the environment variable to point to this file
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp_creds.json"
+    # If not on Streamlit Cloud, the local gcloud ADC will be used automatically.
+except Exception as e:
+    st.error(f"Failed to set up GCP authentication: {e}")
+    st.stop()
+# --- END OF AUTH BLOCK ---
 
 # --- 1. CONFIGURATION ---
 PROJECT_ID = "legalaid-469608"
@@ -26,15 +49,26 @@ DEPLOYED_INDEX_ID = "legal_deploy_1756326640249"
 @st.cache_resource
 def initialize_clients():
     """Initializes and returns all necessary Google Cloud clients and models."""
+    
+    # Init for embeddings + index (region specific)
     aiplatform.init(project=PROJECT_ID, location=REGION)
     vertexai.init(project=PROJECT_ID, location=REGION)
+    
+    embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+    index_endpoint = aiplatform.MatchingEngineIndexEndpoint(index_endpoint_name=INDEX_ENDPOINT_ID)
+    
+    # Init separately for generative model (must be global for 2.5)
+    vertexai.init(project=PROJECT_ID, location="global")
+    generative_model = GenerativeModel("gemini-2.5-flash-lite")
+    
     clients = {
-        "embedding_model": TextEmbeddingModel.from_pretrained("text-embedding-004"),
-        "generative_model": GenerativeModel("gemini-1.5-flash-002"),
-        "index_endpoint": aiplatform.MatchingEngineIndexEndpoint(index_endpoint_name=INDEX_ENDPOINT_ID),
+        "embedding_model": embedding_model,
+        "generative_model": generative_model,
+        "index_endpoint": index_endpoint,
     }
     print("✅ Clients Initialized Successfully!")
     return clients
+
 
 try:
     clients = initialize_clients()
@@ -254,7 +288,7 @@ st.set_page_config(layout="wide", page_title="Legal AI Demystifier")
 
 # --- UI: Sidebar ---
 with st.sidebar:
-    st.image("https://storage.googleapis.com/maker-studio-project-emblems/Google-Cloud-emblems/gen-ai-emblem.png", width=100)
+    st.image("https://static.vecteezy.com/system/resources/previews/028/575/685/large_2x/judge-hammer-in-the-court-room-wooden-gavel-as-a-symbol-of-justice-generated-ai-photo.jpg", width=100)
     st.title("📄 Legal AI Demystifier")
     st.markdown("Upload a legal document (PDF) to get an instant, easy-to-understand analysis.")
     uploaded_file = st.file_uploader(" ", type="pdf", label_visibility="collapsed")
