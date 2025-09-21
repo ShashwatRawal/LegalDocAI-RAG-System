@@ -16,22 +16,25 @@ from vertexai.generative_models import GenerativeModel
 import streamlit as st
 import json
 
+import streamlit as st
+import json
+
 # --- GCP AUTHENTICATION ---
-# This block handles authentication for both local development and Streamlit Cloud.
 try:
-    # Check if we are running on Streamlit Cloud
-    if 'gcp_service_account' in st.secrets:
-        # If so, create a credentials file from the secrets
-        creds_dict = st.secrets["gcp_service_account"]
+    # Check if we are running on Streamlit Cloud and secrets are set
+    if "gcp_service_account" in st.secrets:
+        # Get the credentials from secrets
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        
+        # Convert the dictionary to a JSON string
         creds_json = json.dumps(creds_dict)
         
-        # Write the JSON to a temporary file
+        # Write the JSON string to a temporary file
         with open("gcp_creds.json", "w") as f:
             f.write(creds_json)
         
-        # Set the environment variable to point to this file
+        # Set the environment variable to point to this temp file
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp_creds.json"
-    # If not on Streamlit Cloud, the local gcloud ADC will be used automatically.
 except Exception as e:
     st.error(f"Failed to set up GCP authentication: {e}")
     st.stop()
